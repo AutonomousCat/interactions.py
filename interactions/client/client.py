@@ -474,7 +474,8 @@ class Client(
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         if not self.is_closed:
-            await self.stop()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.stop()
 
     @property
     def is_closed(self) -> bool:
@@ -984,10 +985,11 @@ class Client(
                 )
             except Exception as e:
                 self.dispatch(events.Error(source="async-extension-loader", error=e))
-        try:
-            await self._connection_state.start()
-        finally:
-            await self.stop()
+        with contextlib.suppress(asyncio.CancelledError):
+            try:
+                await self._connection_state.start()
+            finally:
+                await self.stop()
 
     def start(self, token: str | None = None) -> None:
         """
